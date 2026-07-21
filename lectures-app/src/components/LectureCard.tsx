@@ -1,6 +1,10 @@
-// components/LectureCard.tsx
-import { motion } from "framer-motion";
-import { Heart, Clock, User, Star, Users } from "lucide-react";
+'use client';
+
+import { motion } from 'framer-motion';
+import { Heart, Users, Star, Clock, BookOpen } from 'lucide-react';
+import Image from 'next/image';
+import Badges from './Badges';
+import ShareButton from './ShareButton';
 
 interface LectureCardProps {
   title: string;
@@ -9,20 +13,14 @@ interface LectureCardProps {
   image: string;
   duration: string;
   level: string;
+  category: string;
+  rating: number;
+  students: number;
   isFavorite: boolean;
   onToggleFavorite: () => void;
   onClick: () => void;
-  viewMode?: "grid" | "list";
-  category?: string;
-  rating?: number;
-  students?: number;
+  viewMode?: 'grid' | 'list';
 }
-
-const levelColors = {
-  Beginner: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-  Intermediate: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-  Advanced: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-};
 
 export default function LectureCard({
   title,
@@ -31,73 +29,105 @@ export default function LectureCard({
   image,
   duration,
   level,
+  category,
+  rating,
+  students,
   isFavorite,
   onToggleFavorite,
   onClick,
-  viewMode = "grid",
-  category,
-  rating = 4.5,
-  students = 0,
+  viewMode = 'grid',
 }: LectureCardProps) {
-  if (viewMode === "list") {
+  const isNew = new Date(date) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const isPopular = students > 1000;
+
+  if (viewMode === 'list') {
     return (
       <motion.div
-        whileHover={{ scale: 1.02 }}
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 flex flex-col sm:flex-row cursor-pointer border border-gray-100 dark:border-gray-700"
+        whileHover={{ scale: 1.01 }}
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-all cursor-pointer"
         onClick={onClick}
       >
-        <div className="relative sm:w-48 h-48 sm:h-auto flex-shrink-0">
-          <img
-            src={image}
-            alt={title}
-            className="w-full h-full object-cover"
-          />
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleFavorite();
-            }}
-            className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-lg hover:scale-110 transition-transform"
-          >
-            <Heart
-              className={`w-5 h-5 ${isFavorite ? "fill-red-500 text-red-500" : "text-gray-600"}`}
+        <div className="flex flex-col sm:flex-row">
+          <div className="relative w-full sm:w-48 h-48 sm:h-auto flex-shrink-0">
+            <Image
+              src={image}
+              alt={title}
+              fill
+              sizes="(max-width: 640px) 100vw, 192px"
+              loading="eager"  // 👈 Added for LCP
+              fetchPriority="high"  // 👈 Added for speed
+              className="object-cover"
             />
-          </button>
-        </div>
-        <div className="flex-1 p-6">
-          <div className="flex items-start justify-between">
+            <Badges 
+              isNew={isNew}
+              isPopular={isPopular}
+              duration={duration}
+              className="absolute top-3 left-3"
+            />
+          </div>
+          <div className="flex-1 p-4 flex flex-col justify-between">
             <div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{title}</h3>
-              <p className="text-gray-600 dark:text-gray-400 flex items-center gap-1">
-                <User className="w-4 h-4" />
-                {instructor}
-              </p>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    {title}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    By {instructor}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <ShareButton lectureTitle={title} lectureId={0} />
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleFavorite();
+                    }}
+                    className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <Heart
+                      className={`w-5 h-5 ${
+                        isFavorite
+                          ? 'fill-pink-500 text-pink-500'
+                          : 'text-gray-400 dark:text-gray-500'
+                      }`}
+                    />
+                  </motion.button>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-gray-600 dark:text-gray-400">
+                <span className="flex items-center gap-1">
+                  <BookOpen className="w-4 h-4" />
+                  {category}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Clock className="w-4 h-4" />
+                  {duration}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Users className="w-4 h-4" />
+                  {students}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                  {rating}
+                </span>
+              </div>
             </div>
-            <span className={`px-3 py-1 rounded-full text-xs font-medium ${levelColors[level as keyof typeof levelColors]}`}>
-              {level}
-            </span>
-          </div>
-          <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-gray-600 dark:text-gray-400">
-            <span className="flex items-center gap-1">
-              <Clock className="w-4 h-4" />
-              {duration}
-            </span>
-            {category && (
-              <span className="bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-full text-blue-600 dark:text-blue-400">
-                {category}
+            <div className="mt-3 flex items-center justify-between">
+              <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                level === 'Beginner' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                level === 'Intermediate' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+              }`}>
+                {level}
               </span>
-            )}
-            <span className="flex items-center gap-1">
-              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-              {rating.toFixed(1)}
-            </span>
-            <span className="flex items-center gap-1">
-              <Users className="w-4 h-4" />
-              {students.toLocaleString()} students
-            </span>
-          </div>
-          <div className="mt-2 text-xs text-gray-500 dark:text-gray-500">
-            📅 {new Date(date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </span>
+            </div>
           </div>
         </div>
       </motion.div>
@@ -106,59 +136,80 @@ export default function LectureCard({
 
   return (
     <motion.div
-      whileHover={{ y: -8, scale: 1.02 }}
-      className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 cursor-pointer border border-gray-100 dark:border-gray-700"
+      whileHover={{ y: -4 }}
+      className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-all cursor-pointer"
       onClick={onClick}
     >
       <div className="relative h-48">
-        <img
+        <Image
           src={image}
           alt={title}
-          className="w-full h-full object-cover"
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+          loading="eager"  // 👈 Added for LCP
+          fetchPriority="high"  // 👈 Added for speed
+          className="object-cover"
         />
-        <button
+        <Badges 
+          isNew={isNew}
+          isPopular={isPopular}
+          duration={duration}
+          className="absolute top-3 left-3"
+        />
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
           onClick={(e) => {
             e.stopPropagation();
             onToggleFavorite();
           }}
-          className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-lg hover:scale-110 transition-transform"
+          className="absolute top-3 right-3 p-2 rounded-xl bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg hover:shadow-xl transition-shadow"
         >
           <Heart
-            className={`w-5 h-5 ${isFavorite ? "fill-red-500 text-red-500" : "text-gray-600"}`}
+            className={`w-5 h-5 ${
+              isFavorite
+                ? 'fill-pink-500 text-pink-500'
+                : 'text-gray-600 dark:text-gray-300'
+            }`}
           />
-        </button>
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
-          <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${levelColors[level as keyof typeof levelColors]}`}>
-            {level}
-          </span>
-        </div>
+        </motion.button>
       </div>
-      <div className="p-5">
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white line-clamp-2 mb-1">
+
+      <div className="p-4">
+        <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
           {title}
         </h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1 mb-2">
-          <User className="w-4 h-4" />
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
           {instructor}
         </p>
-        <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-500">
+
+        <div className="flex items-center gap-2 mt-2 text-sm text-gray-600 dark:text-gray-400">
           <span className="flex items-center gap-1">
-            <Clock className="w-4 h-4" />
-            {duration}
+            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+            {rating}
           </span>
-          <span>📅 {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+          <span>•</span>
+          <span className="flex items-center gap-1">
+            <Users className="w-4 h-4" />
+            {students}
+          </span>
         </div>
-        {category && (
-          <div className="mt-2 flex items-center gap-2">
-            <span className="text-xs bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-full text-blue-600 dark:text-blue-400">
-              {category}
-            </span>
-            <span className="text-xs flex items-center gap-1 text-gray-600 dark:text-gray-400">
-              <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-              {rating.toFixed(1)}
-            </span>
+
+        <div className="flex items-center gap-2 mt-3">
+          <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+            level === 'Beginner' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+            level === 'Intermediate' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+            'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+          }`}>
+            {level}
+          </span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          </span>
+          <div className="ml-auto">
+            <ShareButton lectureTitle={title} lectureId={0} />
           </div>
-        )}
+        </div>
       </div>
     </motion.div>
   );

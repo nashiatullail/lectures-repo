@@ -1,11 +1,23 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { BookOpen, Heart, Filter, Grid3x3, LayoutList } from "lucide-react";
+
+// Components
 import LectureCard from "../components/LectureCard";
 import SearchBar from "../components/SearchBar";
 import LectureModal from "../components/LectureModal";
-import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, Heart, Filter, Grid3x3, LayoutList } from "lucide-react";
+import ThemeToggle from "../components/ThemeToggle";
+import RecentlyViewed from "../components/RecentlyViewed";
+import AdvancedFilters from "../components/AdvancedFilters";
+
+// Hooks
+import { useRecentlyViewed } from "../hooks/useRecentlyViewed";
+import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
+
+// Types
+import { FilterOptions } from "../types";
 
 const lectures = [
   {
@@ -17,7 +29,7 @@ const lectures = [
     description:
       "An overview of AI fundamentals including machine learning, neural networks, and their real-world applications. Perfect for beginners.",
     duration: "45 min",
-    level: "Beginner",
+    level: "Beginner" as const,
     category: "AI & Machine Learning",
     students: 1243,
     rating: 4.8,
@@ -31,7 +43,7 @@ const lectures = [
     description:
       "Deep dive into asynchronous programming in JavaScript. Learn how to handle promises, async/await patterns, and error handling.",
     duration: "60 min",
-    level: "Intermediate",
+    level: "Intermediate" as const,
     category: "Web Development",
     students: 876,
     rating: 4.6,
@@ -45,7 +57,7 @@ const lectures = [
     description:
       "Master essential data structures including arrays, linked lists, trees, and graphs. Learn algorithm design and complexity analysis.",
     duration: "90 min",
-    level: "Intermediate",
+    level: "Intermediate" as const,
     category: "Computer Science",
     students: 1567,
     rating: 4.9,
@@ -59,7 +71,7 @@ const lectures = [
     description:
       "Learn Python from scratch! Covers variables, loops, functions, and object-oriented programming principles.",
     duration: "50 min",
-    level: "Beginner",
+    level: "Beginner" as const,
     category: "Programming",
     students: 2134,
     rating: 4.7,
@@ -73,7 +85,7 @@ const lectures = [
     description:
       "Understand supervised and unsupervised learning, regression, classification, and clustering algorithms.",
     duration: "75 min",
-    level: "Advanced",
+    level: "Advanced" as const,
     category: "AI & Machine Learning",
     students: 987,
     rating: 4.8,
@@ -87,7 +99,7 @@ const lectures = [
     description:
       "Comprehensive React course covering hooks, context API, state management, and performance optimization.",
     duration: "80 min",
-    level: "Intermediate",
+    level: "Intermediate" as const,
     category: "Web Development",
     students: 1543,
     rating: 4.8,
@@ -101,7 +113,7 @@ const lectures = [
     description:
       "Introduction to cloud services, EC2, S3, Lambda, and serverless architecture on Amazon Web Services.",
     duration: "70 min",
-    level: "Intermediate",
+    level: "Intermediate" as const,
     category: "Cloud Computing",
     students: 654,
     rating: 4.5,
@@ -115,7 +127,7 @@ const lectures = [
     description:
       "Learn about network security, encryption, threat detection, and best practices for securing applications.",
     duration: "55 min",
-    level: "Beginner",
+    level: "Beginner" as const,
     category: "Cybersecurity",
     students: 1123,
     rating: 4.6,
@@ -129,7 +141,7 @@ const lectures = [
     description:
       "Master relational database design, normalization, complex queries, and SQL optimization techniques.",
     duration: "65 min",
-    level: "Intermediate",
+    level: "Intermediate" as const,
     category: "Data Science",
     students: 1345,
     rating: 4.7,
@@ -143,7 +155,7 @@ const lectures = [
     description:
       "Learn about continuous integration and deployment, Docker, Kubernetes, and modern DevOps practices.",
     duration: "85 min",
-    level: "Advanced",
+    level: "Advanced" as const,
     category: "DevOps",
     students: 765,
     rating: 4.7,
@@ -153,11 +165,11 @@ const lectures = [
     title: "Digital Marketing Strategies",
     instructor: "Dr. Amanda Foster",
     date: "2026-02-13",
-    image: "https://images.unsplash.com/photo-1432889821006-c2f0c0b5aa0a?w=500&h=300&fit=crop",
+    image: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=500&h=300&fit=crop",
     description:
       "Explore SEO, social media marketing, content strategy, and analytics for modern digital marketing.",
     duration: "50 min",
-    level: "Beginner",
+    level: "Beginner" as const,
     category: "Marketing",
     students: 987,
     rating: 4.4,
@@ -171,7 +183,7 @@ const lectures = [
     description:
       "Build cross-platform mobile apps with Flutter and Dart. Covers widgets, state management, and API integration.",
     duration: "75 min",
-    level: "Intermediate",
+    level: "Intermediate" as const,
     category: "Mobile Development",
     students: 876,
     rating: 4.6,
@@ -185,6 +197,12 @@ export default function Home() {
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [filters, setFilters] = useState<FilterOptions>({
+    level: [],
+    duration: [],
+    rating: null,
+    dateRange: { from: '', to: '' }
+  });
 
   // Get unique categories
   const categories = ["All", ...new Set(lectures.map(l => l.category))];
@@ -206,6 +224,26 @@ export default function Home() {
     );
   };
 
+  // Recently viewed hook
+  const { recentlyViewed, addToRecentlyViewed, clearRecentlyViewed } = useRecentlyViewed();
+
+  // Handle lecture click
+  const handleLectureClick = (lecture: typeof lectures[0]) => {
+    setSelectedLecture(lecture);
+    addToRecentlyViewed(lecture);
+  };
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    onSearch: () => {
+      const searchInput = document.querySelector('input[type="text"]') as HTMLInputElement;
+      searchInput?.focus();
+    },
+    onEscape: () => setSelectedLecture(null),
+    onFavorites: () => setShowFavoritesOnly(!showFavoritesOnly)
+  });
+
+  // Filter lectures
   const filteredLectures = lectures
     .filter((lecture) => 
       lecture.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -213,7 +251,39 @@ export default function Home() {
       lecture.category.toLowerCase().includes(search.toLowerCase())
     )
     .filter((lecture) => (showFavoritesOnly ? favorites.includes(lecture.id) : true))
-    .filter((lecture) => selectedCategory === "All" || lecture.category === selectedCategory);
+    .filter((lecture) => selectedCategory === "All" || lecture.category === selectedCategory)
+    .filter((lecture) => {
+      // Advanced filters
+      if (filters.level.length > 0 && !filters.level.includes(lecture.level)) return false;
+      if (filters.rating && lecture.rating < filters.rating) return false;
+      
+      // Duration filter
+      if (filters.duration.length > 0) {
+        const durationNum = parseInt(lecture.duration);
+        let matchesDuration = false;
+        filters.duration.forEach(d => {
+          if (d === '< 30 min' && durationNum < 30) matchesDuration = true;
+          if (d === '30-60 min' && durationNum >= 30 && durationNum < 60) matchesDuration = true;
+          if (d === '60-90 min' && durationNum >= 60 && durationNum < 90) matchesDuration = true;
+          if (d === '> 90 min' && durationNum >= 90) matchesDuration = true;
+        });
+        if (!matchesDuration) return false;
+      }
+      
+      // Date range filter
+      if (filters.dateRange.from) {
+        const lectureDate = new Date(lecture.date);
+        const fromDate = new Date(filters.dateRange.from);
+        if (lectureDate < fromDate) return false;
+      }
+      if (filters.dateRange.to) {
+        const lectureDate = new Date(lecture.date);
+        const toDate = new Date(filters.dateRange.to);
+        if (lectureDate > toDate) return false;
+      }
+      
+      return true;
+    });
 
   const totalLectures = lectures.length;
   const foundLectures = filteredLectures.length;
@@ -239,6 +309,7 @@ export default function Home() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              <ThemeToggle />
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -278,6 +349,13 @@ export default function Home() {
           </div>
         </motion.div>
 
+        {/* Recently Viewed */}
+        <RecentlyViewed 
+          lectures={recentlyViewed}
+          onLectureClick={handleLectureClick}
+          onClear={clearRecentlyViewed}
+        />
+
         {/* Search and Filters */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -285,7 +363,16 @@ export default function Home() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="space-y-4 mb-8"
         >
-          <SearchBar search={search} setSearch={setSearch} />
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1">
+              <SearchBar search={search} setSearch={setSearch} />
+            </div>
+            <div className="flex items-center gap-2">
+              <AdvancedFilters 
+                onFilterChange={setFilters}
+              />
+            </div>
+          </div>
           
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
@@ -354,13 +441,13 @@ export default function Home() {
                       image={lecture.image}
                       duration={lecture.duration}
                       level={lecture.level}
-                      isFavorite={favorites.includes(lecture.id)}
-                      onToggleFavorite={() => toggleFavorite(lecture.id)}
-                      onClick={() => setSelectedLecture(lecture)}
-                      viewMode={viewMode}
                       category={lecture.category}
                       rating={lecture.rating}
                       students={lecture.students}
+                      isFavorite={favorites.includes(lecture.id)}
+                      onToggleFavorite={() => toggleFavorite(lecture.id)}
+                      onClick={() => handleLectureClick(lecture)}
+                      viewMode={viewMode}
                     />
                   </motion.div>
                 ))}
